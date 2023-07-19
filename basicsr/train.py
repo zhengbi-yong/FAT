@@ -90,6 +90,7 @@ def load_resume_state(opt):
 
 def train_pipeline(root_path):
     # parse options, set distributed setting, set random seed
+    # 解析配置文件 option file，即yml 文件；设置distributed training的相关选项；设置random seed等
     opt, args = parse_options(root_path, is_train=True)
     opt['root_path'] = root_path
 
@@ -97,8 +98,10 @@ def train_pipeline(root_path):
     # torch.backends.cudnn.deterministic = True
 
     # load resume states if necessary
+    # 如果有resume，需要 load 相应的状态
     resume_state = load_resume_state(opt)
     # mkdir for experiments and logger
+    # 创建相关文件夹；拷贝配置的yml文件
     if resume_state is None:
         make_exp_dirs(opt)
         if opt['logger'].get('use_tb_logger') and 'debug' not in opt['name'] and opt['rank'] == 0:
