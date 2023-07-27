@@ -1,0 +1,110 @@
+# general settings
+name: train_LIIF
+model_type: LIIFModel
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# network structures
+network_g:
+  type: LIIF
+  encoder_spec:
+    name: make_edsr_baseline
+    args:
+      no_upsampling: true
+  imnet_spec:
+    name: MLP
+    args:
+      out_dim: 3
+      hidden_list: [256, 256, 256, 256]
+  # Other parameters for the LIIF network...
+
+datasets:
+  train:
+    name: LIIFDatasetTRN
+    type: LIIFImageFolder
+    args:
+      root_path: ./datasets/DF2K/DIV2K/DIV2K_train_HR
+      repeat: 20
+      cache: in_memory
+    wrapper:
+      name: sr-implicit-downsampled
+      args:
+        inp_size: 48
+        scale_max: 4
+        augment: True
+        sample_q: 2304
+    batch_size_per_gpu: 16
+    num_worker_per_gpu: 4
+    phase: train
+    scale: 4
+  val:
+    name: LIIFDatasetVAL
+    type: LIIFImageFolder
+    args:
+      root_path: ./datasets/DF2K/DIV2K/DIV2K_valid_HR
+      first_k: 10
+      repeat: 160
+      cache: in_memory
+    wrapper:
+      name: sr-implicit-downsampled
+      args:
+        inp_size: 48
+        scale_max: 4
+        sample_q: 2304
+    batch_size_per_gpu: 16
+    num_worker_per_gpu: 4
+    phase: val
+    scale: 4
+
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+logger:
+  print_freq: 100
+  save_checkpoint_freq: 5000
+  use_tb_logger: true
+
+dist_params:
+  backend: nccl
+  port: 29500
+
+train:
+  lr_g: 1e-4
+  weight_decay_g: 0
+  beta1: 0.9
+  beta2: 0.99
+  lr_scheme: MultiStepLR
+  lr_steps: [50000, 100000, 200000, 300000]
+  lr_gamma: 0.5
+  total_iter: 400000
+  val_freq: 4000
+  pixel_criterion: l1
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  optim_g:
+    type: Adam
+    lr: 0.0002
+    betas:
+      - 0.5
+      - 0.999
+  scheduler:
+    type: MultiStepLR
+    milestones: [50000, 100000, 200000, 300000]
+    gamma: 0.5
+
+val:
+  val_freq: 1000
+  save_img: true
+
+# Optimizer for the generator network
+optimizers:
+  optimizer_g:
+    type: Adam
+    lr: 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
